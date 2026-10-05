@@ -1,0 +1,95 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#f4f7fb">
+  <title>LRU Cache &amp; Page Replacement</title>
+  <link rel="stylesheet" href="/styles.css">
+  <script src="/app.js" defer></script>
+</head>
+<body>
+  <header class="topbar">
+    <a class="brand" href="#home" aria-label="LRU Algorithm Lab home"><span class="brand-mark">LRU</span><span>ALGORITHM LAB</span></a>
+    <nav aria-label="Main navigation">
+      <button class="nav-link active" data-view="home">Home</button>
+      <button class="nav-link" data-view="cache">LRU Cache</button>
+      <button class="nav-link" data-view="simulator">Page Simulator</button>
+      <button class="nav-link" data-view="history">History</button>
+    </nav>
+  </header>
+
+  <main class="shell">
+    <section id="home" class="view active">
+      <div class="hero">
+        <p class="eyebrow">OPERATING SYSTEMS · ALGORITHM VISUALIZER</p>
+        <h1>LRU Cache &amp; Page Replacement</h1>
+        <p class="lead">Algorithm Visualization System</p>
+        <p class="hero-copy">Explore how least recently used data moves through a cache, and see each page hit, fault, and eviction step by step.</p>
+      </div>
+      <div class="dashboard-grid">
+        <button class="dashboard-card" data-view="cache"><span class="card-icon">01</span><span class="card-title">LRU Cache</span><span class="card-copy">Try cache reads, writes, and least-recently-used eviction.</span><span class="card-action">Open cache demo <span aria-hidden="true">→</span></span></button>
+        <button class="dashboard-card" data-view="simulator"><span class="card-icon">02</span><span class="card-title">Page Simulator</span><span class="card-copy">Visualize page replacement and review the hit ratio.</span><span class="card-action">Run a simulation <span aria-hidden="true">→</span></span></button>
+        <button class="dashboard-card" data-view="history"><span class="card-icon">03</span><span class="card-title">Simulation History</span><span class="card-copy">Browse saved runs from the existing MySQL database.</span><span class="card-action">View saved runs <span aria-hidden="true">→</span></span></button>
+      </div>
+      <p class="home-note">A student-friendly view of the LRU page replacement algorithm.</p>
+    </section>
+
+    <section id="cache" class="view" hidden>
+      <div class="page-heading"><p class="eyebrow">INTERACTIVE DEMO</p><h1>LRU Cache</h1><p>Put a key and value, then access keys to update their recent-use order.</p></div>
+      <div class="panel cache-panel">
+        <div class="panel-title-row"><div><h2>Cache operations</h2><p class="muted">Cache state is kept for this browser session.</p></div><span class="capacity-badge">Capacity <strong id="cache-capacity">3</strong></span></div>
+        <form id="cache-form" class="cache-form">
+          <label>Key<input id="cache-key" name="key" placeholder="e.g. A" autocomplete="off"></label>
+          <label>Value<input id="cache-value" name="value" placeholder="e.g. Apple" autocomplete="off"></label>
+          <label class="capacity-input">Capacity<input id="cache-capacity-input" type="number" min="1" max="20" value="3"></label>
+          <div class="button-row">
+            <button class="button primary" type="submit">Put / Update</button>
+            <button class="button secondary" type="button" id="cache-get">Get key</button>
+            <button class="button secondary" type="button" id="cache-reset">Reset cache</button>
+          </div>
+        </form>
+        <div id="cache-message" class="inline-message" role="status" aria-live="polite"></div>
+      </div>
+      <div class="panel">
+        <div class="panel-title-row"><div><h2>Current cache state</h2><p class="muted">Most recently used on the left, least recently used on the right.</p></div></div>
+        <div id="cache-entries" class="cache-entries"><p class="empty-state">Your cache entries will appear here.</p></div>
+      </div>
+    </section>
+
+    <section id="simulator" class="view" hidden>
+      <div class="page-heading"><p class="eyebrow">PAGE REPLACEMENT</p><h1>Run a simulation</h1><p>Enter a frame count and a page reference string separated by spaces or commas.</p></div>
+      <div class="panel">
+        <form id="simulation-form" class="simulation-form">
+          <label class="frames-field">Frames<input id="frames" type="number" min="1" max="100" value="4" required></label>
+          <label class="references-field">Page reference string<input id="references" type="text" placeholder="1 2 3 4 5 6" required></label>
+          <button class="button primary run-button" type="submit">Run Simulation</button>
+        </form>
+      </div>
+      <div id="simulation-results" class="results-area" hidden>
+        <div class="metric-grid">
+          <article class="metric-card"><span>Total hits</span><strong id="hits">0</strong></article>
+          <article class="metric-card"><span>Total faults</span><strong id="faults">0</strong></article>
+          <article class="metric-card"><span>Hit ratio</span><strong id="hit-ratio">0.00%</strong></article>
+        </div>
+        <div class="panel table-panel">
+          <div class="panel-title-row"><div><h2>Page-by-page result</h2><p class="muted">Each row shows the frame contents after processing that page.</p></div></div>
+          <div class="table-scroll"><table><thead><tr><th>Step</th><th>Page</th><th>Result</th><th>Memory state (MRU → LRU)</th><th>Evicted page</th></tr></thead><tbody id="simulation-rows"></tbody></table></div>
+        </div>
+        <div class="panel final-state"><div><h2>Final memory state</h2><p class="muted">Most recently used to least recently used</p></div><div id="final-memory" class="memory-chips"></div></div>
+      </div>
+    </section>
+
+    <section id="history" class="view" hidden>
+      <div class="page-heading history-heading"><div><p class="eyebrow">MYSQL RECORDS</p><h1>Simulation history</h1><p>Saved runs from the <code>lrudb.simulation_runs</code> table.</p></div><div class="button-row"><button id="history-refresh" class="button secondary" type="button">Refresh</button><button id="history-clear" class="button danger-outline" type="button">Clear history</button></div></div>
+      <div id="history-message" class="inline-message" role="status" aria-live="polite"></div>
+      <div class="panel table-panel">
+        <div class="table-scroll"><table><thead><tr><th>ID</th><th>Frames</th><th>Reference string</th><th>Hits</th><th>Faults</th><th>Hit ratio</th><th>Created at</th></tr></thead><tbody id="history-rows"></tbody></table></div>
+        <div id="history-empty" class="empty-state" hidden>No saved simulations yet. Run a simulation to add one.</div>
+      </div>
+    </section>
+    <div id="toast" class="toast" role="status" aria-live="polite"></div>
+  </main>
+  <footer>LRU Cache &amp; Page Replacement Simulator <span>·</span> Java, Spring Boot, MySQL</footer>
+</body>
+</html>

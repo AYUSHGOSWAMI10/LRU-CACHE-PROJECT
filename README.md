@@ -1,60 +1,69 @@
 # LRU Cache and Page Replacement Simulator
 
-A small Java console application demonstrating a least recently used (LRU) cache and using the same cache behavior to simulate operating system page replacement. Page simulation results can be saved to and viewed from MySQL.
-
-## Features
-
-- Generic key-value LRU cache with `get`, `put`, `containsKey`, and `size` operations.
-- Page replacement simulation that reports each page hit or fault and the current frame contents.
-- MySQL history for simulation runs, including the frame count, reference string, hits, faults, hit percentage, and timestamp.
-- Menu options to run the cache demo, simulate pages, view history, clear history, or exit.
+A small Spring Boot web application for visualizing the Least Recently Used (LRU) cache and using it for page replacement. The frontend is plain HTML, CSS, and JavaScript. Simulation history is stored in the existing MySQL lrudb.simulation_runs table.
 
 ## Requirements
 
-- JDK 16 or newer (the project uses Java records and switch expressions).
-- MySQL Server running locally, with a MySQL account the application can use.
-- The MySQL Connector/J dependency included under `lib/`.
+- JDK 17 or newer; Spring Boot 4.1.1 supports Java 17 through 26.
+- Apache Maven 3.6.3 or newer.
+- MySQL Server available at localhost:3306 with access to the existing lrudb database and simulation_runs table.
 
 ## Configure MySQL
 
-Before launching the application, update the connection URL, username, and password in `src/com/lru/project/DatabaseManager.java` for your local MySQL setup. The URL targets `localhost:3306` and the database name `lrudb`; `createDatabaseIfNotExist=true` asks MySQL to create that database if it does not already exist. The application creates the `simulation_runs` table at startup.
+Connection settings are centralized in src/main/resources/application.properties:
 
-Do not use real credentials in a shared commit. For anything beyond a local demo, load credentials from environment variables or another secret store instead of keeping them in source code.
+```properties
+spring.datasource.url=${DB_URL:jdbc:mysql://localhost:3306/lrudb?useSSL=false&allowPublicKeyRetrieval=true&serverTimezone=UTC}
+spring.datasource.username=${DB_USERNAME:ayush}
+spring.datasource.password=${DB_PASSWORD:1234}
+```
+
+The values after the colon are local development defaults matching the current project configuration. Override them with DB_URL, DB_USERNAME, and DB_PASSWORD environment variables when needed. Credentials are only used by the backend and are never sent to the browser.
+
+The application uses JDBC queries against the current table. It does not create, drop, or alter the database or table. Clear History deletes rows from simulation_runs only.
 
 ## Run
 
-From the `LRUDemo` directory:
+From this directory:
 
 ```bash
-./run.sh
+bash run.sh
 ```
 
-The script compiles the Java sources into `out/` and starts `com.lru.project.AppMain` when compilation succeeds. You can also compile and launch manually:
+Then open http://localhost:8080. You can also run mvn spring-boot:run directly. The launcher selects Java 26 on macOS when available and otherwise uses the default Java installation.
 
-```bash
-javac -cp "lib/mysql-connector-j-26.7.0/*" -d out src/com/lru/project/*.java
-java -cp "out:lib/mysql-connector-j-26.7.0/*" com.lru.project.AppMain
-```
+## Features
 
-## Using the menu
+- **LRU Cache:** Put, update, and get keys; choose a capacity; view MRU-to-LRU order and any evicted key. Cache state is isolated per browser session.
+- **Page Simulator:** Set frame count and enter page references separated by spaces or commas. The page-by-page table shows hits, faults, memory state, and evictions, along with totals and hit ratio.
+- **Simulation History:** Read saved records from MySQL and refresh the table.
+- **Clear History:** Confirm before deleting rows from the simulation history table.
 
-1. Choose **LRU Cache demo** to see cache insertions, access-order updates, and eviction.
-2. Choose **Page Replacement Simulator**, enter the number of frames, the number of page references, and then the page numbers. The run summary is saved to MySQL.
-3. Choose **View simulation history** to list saved runs, newest first.
-4. Choose **Clear history** to remove all saved simulation records.
-5. Choose **Exit** to quit.
+## REST API
 
-The cache prints entries from most recently used to least recently used. When full, inserting a new key evicts the least recently used entry.
+| Method | Endpoint | Purpose |
+| --- | --- | --- |
+| POST | /api/simulate | Run the existing LRU page replacement behavior and save its summary |
+| GET | /api/history | Read saved simulations |
+| DELETE | /api/history | Delete simulation rows only |
+| POST | /api/cache | Perform a session-scoped cache PUT, GET, or RESET |
+| GET | /api/health | Check that the web application is running |
 
-## Project layout
+The static browser UI calls these endpoints with fetch() and renders returned JSON.
+
+## Layout
 
 ```text
-src/com/lru/project/
-  AppMain.java                  Console menu and demos
-  LRUCache.java                 Generic LRU cache implementation
-  PageReplacementSimulator.java Page reference simulation
-  DatabaseManager.java          MySQL connection and schema setup
-  SimulationDAO.java            Save, list, and delete simulation history
-lib/                            MySQL Connector/J dependency
-run.sh                          Compile and launch script
+src/main/java/com/lru/project/
+  controller/                  REST endpoints and API error handling
+  model/                       Request and response records
+  repository/                  JDBC queries for simulation_runs
+  service/                     LRU cache and simulation behavior
+  LruWebApplication.java       Spring Boot entry point
+src/main/resources/
+  application.properties       MySQL and server configuration
+  static/                      HTML, CSS, and vanilla JavaScript UI
+legacy-console/                 Preserved pre-migration Java desktop sources
 ```
+
+The original desktop implementation is retained under legacy-console/ as a source backup; Maven compiles only the Spring Boot application under src/main/java.
